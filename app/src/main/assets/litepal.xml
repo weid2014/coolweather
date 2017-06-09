@@ -4,6 +4,6 @@
     <list>
         <mapping class="com.augurit.coolweather.db.Province"/>
         <mapping class="com.augurit.coolweather.db.City"/>
-        <mapping class="com.augurit.coolweather.db.Country"/>
+        <mapping class="com.augurit.coolweather.db.County"/>
     </list>
 </litepal>
