@@ -5,10 +5,13 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.annotation.Nullable;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -32,6 +35,9 @@ import okhttp3.Response;
  * Created by Administrator on 2017-06-12.
  */
 public class WeatherActivity extends AppCompatActivity {
+    public DrawerLayout drawerLayout;
+    private Button navButton;
+    public SwipeRefreshLayout swipeRefresh;
     private ImageView bingPicImg;
     private ScrollView weatherLayout;
     private TextView titleCity;
@@ -69,6 +75,7 @@ public class WeatherActivity extends AppCompatActivity {
      * 初始化数据
      */
     private void initData() {
+
         SharedPreferences preferences=PreferenceManager.getDefaultSharedPreferences(this);
         //初始化背景图
         String bingPic=preferences.getString("bing_pic",null);
@@ -79,16 +86,32 @@ public class WeatherActivity extends AppCompatActivity {
         }
         //初始化天气信息
         String weatherString=preferences.getString("weather",null);
+        final String weatherId;
         if(weatherString!=null){
             //有缓存时直接解析天气
             Weather weather=Utility.handleWeatherResponse(weatherString);
+            weatherId=weather.basic.weatherId;
             showWeatherInfo(weather);
         }else{
             //无缓存时去服务器查询天气
-            String weatherId=getIntent().getStringExtra("weather_id");
+            weatherId=getIntent().getStringExtra("weather_id");
             weatherLayout.setVisibility(View.INVISIBLE);
             requestWeather(weatherId);
         }
+        //手动刷新
+        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                requestWeather(weatherId);
+            }
+        });
+        //切换城市按键
+        navButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
+        });
     }
 
     /**
@@ -130,6 +153,10 @@ public class WeatherActivity extends AppCompatActivity {
      * 初始化控件
      */
     private void initView() {
+        navButton= (Button) findViewById(R.id.nav_button);
+        drawerLayout= (DrawerLayout) findViewById(R.id.drawer_layout);
+        swipeRefresh= (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
+        swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
         bingPicImg= (ImageView) findViewById(R.id.bing_pic_img);
 
         weatherLayout= (ScrollView) findViewById(R.id.weather_layout);
@@ -149,7 +176,7 @@ public class WeatherActivity extends AppCompatActivity {
      * 根据城市id请求城市天气信息
      * @param weatherId
      */
-    private void requestWeather(String weatherId) {
+    public void requestWeather(String weatherId) {
         String weatherURL = "http://guolin.tech/api/weather?cityid=" + weatherId + "&key=bc0418b57b2d4918819d3974ac1285d9";
         LogUtil.d("请求链接是--"+weatherURL);
         HttpUtil.sendOkHttpRequest(weatherURL, new Callback() {
@@ -168,6 +195,7 @@ public class WeatherActivity extends AppCompatActivity {
                         }else{
                             Toast.makeText(WeatherActivity.this,"获取天气信息失败!",Toast.LENGTH_SHORT).show();
                         }
+                        swipeRefresh.setRefreshing(false);
                     }
                 });
             }
@@ -178,6 +206,7 @@ public class WeatherActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         Toast.makeText(WeatherActivity.this,"获取天气信息失败",Toast.LENGTH_SHORT).show();
+                        swipeRefresh.setRefreshing(false);
                     }
                 });
             }
